@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ANDE · brand files</title>
+<meta name="robots" content="noindex">
+<style>
+  @font-face{font-family:"FiraGO";src:url("../prototype/assets/fonts/FiraGO-Regular.ttf");font-weight:400}
+  @font-face{font-family:"FiraGO";src:url("../prototype/assets/fonts/FiraGO-SemiBold.ttf");font-weight:600}
+  @font-face{font-family:"FiraGO";src:url("../prototype/assets/fonts/FiraGO-Bold.ttf");font-weight:700}
+  :root{--navy:#11274A;--gray:#707372;--line:#E2E6EC;--soft:#F4F6F9}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"FiraGO",system-ui,sans-serif;color:#121C2B;background:#fff;line-height:1.5}
+  .wrap{max-width:1200px;margin:0 auto;padding:40px 24px 80px}
+  h1{margin:0;font-size:28px;color:var(--navy)}
+  h2{margin:48px 0 16px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--gray)}
+  p.lead{margin:8px 0 0;color:#5E6470;max-width:720px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+  .card__art{height:150px;display:grid;place-items:center;padding:28px;background:#fff}
+  .card__art.dark{background:var(--navy)}
+  .card__art.pat{height:260px;padding:0;background-repeat:repeat-y;background-position:center top;background-size:auto 260px}
+  .card__art img{max-width:100%;max-height:72px}
+  .card__meta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);background:var(--soft);font-size:13px}
+  .card__meta code{font-size:12px;color:#5E6470;word-break:break-all}
+  .card__meta a{flex:none;color:var(--navy);font-weight:600;text-decoration:none}
+  .sw{display:flex;gap:14px;flex-wrap:wrap}
+  .sw div{width:220px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .sw i{display:block;height:96px}
+  .sw p{margin:0;padding:10px 14px;font-size:13px}
+  .sw b{display:block;font-size:14px}
+  .type{padding:24px;border:1px solid var(--line);border-radius:12px}
+  .type .big{font-size:40px;font-weight:700;color:var(--navy)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ANDE: ლოგოები და პატერნები</h1>
+  <p class="lead">Extracted as vectors from the brand book (<i>ANDE_BRANDBOOK for claude.pdf</i>, pp. 15, 16, 24, 26) and from the logo files. Every file is a clean SVG cropped to the artwork, so it scales to any size. Colours follow the brand book: navy #11274A, gray #707372.</p>
+
+  <h2>Logos</h2>
+  <div class="grid">
+    <div class="card"><div class="card__art"><img src="logo/ande-logo-ka.svg" alt=""></div><div class="card__meta"><code>logo/ande-logo-ka.svg</code><a href="logo/ande-logo-ka.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art dark"><img src="logo/ande-logo-ka-white.svg" alt=""></div><div class="card__meta"><code>logo/ande-logo-ka-white.svg</code><a href="logo/ande-logo-ka-white.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art"><img src="logo/ande-logo-en.svg" alt=""></div><div class="card__meta"><code>logo/ande-logo-en.svg</code><a href="logo/ande-logo-en.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art dark"><img src="logo/ande-logo-en-white.svg" alt=""></div><div class="card__meta"><code>logo/ande-logo-en-white.svg</code><a href="logo/ande-logo-en-white.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art"><img src="logo/ande-logo-ka-tagline.svg" alt=""></div><div class="card__meta"><code>logo/ande-logo-ka-tagline.svg</code><a href="logo/ande-logo-ka-tagline.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art dark"><img src="logo/ande-logo-ka-tagline-white.svg" alt=""></div><div class="card__meta"><code>logo/ande-logo-ka-tagline-white.svg</code><a href="logo/ande-logo-ka-tagline-white.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art"><img src="logo/ande-symbol.svg" alt=""></div><div class="card__meta"><code>logo/ande-symbol.svg</code><a href="logo/ande-symbol.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art dark"><img src="logo/ande-symbol-white.svg" alt=""></div><div class="card__meta"><code>logo/ande-symbol-white.svg</code><a href="logo/ande-symbol-white.svg" download>SVG</a></div></div>
+  </div>
+
+  <h2>Patterns</h2>
+  <p class="lead" style="margin:-6px 0 16px">The <b>strip</b> (brand book p. 15) repeats top-to-bottom with no visible seam, so tile it vertically. The <b>panel</b> (p. 26) is one cropped block, for covers and backgrounds.</p>
+  <div class="grid">
+    <div class="card"><div class="card__art pat" style="background-image:url(pattern/ande-pattern-strip-navy.svg)"></div><div class="card__meta"><code>pattern/ande-pattern-strip-navy.svg</code><a href="pattern/ande-pattern-strip-navy.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art pat dark" style="background-image:url(pattern/ande-pattern-strip-gray.svg)"></div><div class="card__meta"><code>pattern/ande-pattern-strip-gray.svg</code><a href="pattern/ande-pattern-strip-gray.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art pat dark" style="background-image:url(pattern/ande-pattern-strip-white.svg)"></div><div class="card__meta"><code>pattern/ande-pattern-strip-white.svg</code><a href="pattern/ande-pattern-strip-white.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art pat" style="background:url(pattern/ande-pattern-panel-navy.svg) center/cover no-repeat"></div><div class="card__meta"><code>pattern/ande-pattern-panel-navy.svg</code><a href="pattern/ande-pattern-panel-navy.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art pat dark" style="background:var(--navy) url(pattern/ande-pattern-panel-gray.svg) center/cover no-repeat"></div><div class="card__meta"><code>pattern/ande-pattern-panel-gray.svg</code><a href="pattern/ande-pattern-panel-gray.svg" download>SVG</a></div></div>
+    <div class="card"><div class="card__art pat dark" style="background:var(--navy) url(pattern/ande-pattern-panel-white.svg) center/cover no-repeat"></div><div class="card__meta"><code>pattern/ande-pattern-panel-white.svg</code><a href="pattern/ande-pattern-panel-white.svg" download>SVG</a></div></div>
+  </div>
+
+  <h2>Colours</h2>
+  <div class="sw">
+    <div><i style="background:#11274A"></i><p><b>Navy · Pantone 2767 C</b>#11274A · RGB 18 40 75 · CMYK 100 87 42 41</p></div>
+    <div><i style="background:#707372"></i><p><b>Gray · Pantone 424 C</b>#707372 · RGB 112 115 114 · CMYK 57 47 48 14</p></div>
+    <div><i style="background:#fff;border-bottom:1px solid var(--line)"></i><p><b>White</b>#FFFFFF</p></div>
+  </div>
+
+  <h2>Typeface</h2>
+  <div class="type"><div class="big">FiraGO · როცა საქმე მეტყველებს</div><p style="margin:8px 0 0;color:#5E6470">FiraGO Regular · SemiBold · Bold. SIL Open Font License, free to use on the web.</p></div>
+</div>
+</body>
+</html>
