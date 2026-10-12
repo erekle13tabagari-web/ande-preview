@@ -12,7 +12,6 @@
     ['ducts', 'ჰაერსატარები', 'i-duct'], ['water', 'წყალმომარაგება', 'i-drop']
   ];
   var page = document.body.getAttribute('data-page') || '';
-  var curCat = new URLSearchParams(location.search).get('cat');
   function ico(id, cls) { return '<svg class="ico' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#' + id + '"/></svg>'; }
 
   var SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidden="true">' +
@@ -56,8 +55,8 @@
     sym('i-store', '<path d="M4 9.5V20h16V9.5"/><path d="M3 9.5 5 4h14l2 5.5a2.5 2.5 0 0 1-4.5 1.5A2.5 2.5 0 0 1 12 11a2.5 2.5 0 0 1-4.5 0A2.5 2.5 0 0 1 3 9.5z"/><path d="M9.5 20v-5h5v5"/>') +
     sym('i-doc', '<path d="M6 3.5h8l4 4v13H6z"/><path d="M14 3.5v4h4M9 13h6M9 16.5h6"/>') +
     sym('i-flame', '<path d="M12 21.5c-3.9 0-7-2.8-7-6.6 0-2.7 1.6-4.6 3.2-6.3.3 1.6 1.2 2.7 2.5 3.1-.3-3.4 1.4-6.4 4-8.2-.2 2.8 1 4.5 2.3 6.2 1.2 1.5 2 3.1 2 5.2 0 3.8-3.1 6.6-7 6.6z"/>') +
-    sym('i-snow', '<path d="M12 2.5v19M3.8 7.3l16.4 9.4M3.8 16.7l16.4-9.4"/><path d="m9.3 3.9 2.7 2.4 2.7-2.4M9.3 20.1l2.7-2.4 2.7 2.4"/>') +
-    sym('i-fan', '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.6"/><path d="M12 10.4c0-3 1.1-5 3.6-5.2M13.4 12.8c2.6 1.5 3.8 3.4 2.6 5.6M10.6 12.8c-2.6 1.5-4.8 1.6-6-.6"/>') +
+    sym('i-snow', '<path d="M12 2.5v19M3.8 7.3l16.4 9.4M3.8 16.7l16.4-9.4"/><path d="M9.3 3.9 12 6.3l2.7-2.4M9.3 20.1l2.7-2.4 2.7 2.4M20.4 13.7 17 14.8l.8 3.5M6.3 5.6 7 9.2l-3.4 1.2M6.3 18.4 7 14.8l-3.4-1.2M20.4 10.3 17 9.2l.8-3.5"/>') +
+    sym('i-fan', '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.6"/><path stroke-width="1.95" d="M12.2 10.3c0-3.4 1.3-5.7 4.1-6M13.8 13c3 1.7 4.4 3.9 3 6.4M10.6 13c-3 1.7-5.5 1.8-6.9-.7"/>') +
     sym('i-duct', '<path d="M3 9.5 7 6.5h13.5l-4 3z"/><path d="M3 9.5h13.5V18H3z"/><path d="M16.5 18l4-3V6.5"/>') +
     sym('i-drop', '<path d="M12 3.2s6.3 6.6 6.3 11.2a6.3 6.3 0 0 1-12.6 0C5.7 9.8 12 3.2 12 3.2z"/><path d="M9 14.8a3 3 0 0 0 3 3"/>') +
     sym('i-radiator', '<rect x="3.5" y="5" width="17" height="13" rx="2"/><path d="M7.7 5v13M12 5v13M16.3 5v13M6.5 18v2M17.5 18v2"/>') +
@@ -104,9 +103,7 @@
         '</div>' +
       '</div>' +
       '<nav class="catnav" aria-label="კატეგორიები"><div class="wrap">' +
-        '<ul class="catnav__list">' + CATS.map(function (c) {
-          return '<li><a href="catalog.html?cat=' + c[0] + '" data-mega-cat="' + c[0] + '"' + (page === 'catalog' && curCat === c[0] ? ' aria-current="page"' : '') + '>' + ico(c[2]) + c[1] + '</a></li>';
-        }).join('') + '</ul>' +
+        '<button class="catnav__btn" type="button" aria-expanded="false" aria-controls="mega" data-mega-toggle>' + ico('i-menu') + '<span>კატალოგი</span>' + ico('i-chev', 'catnav__chev') + '</button>' +
         '<ul class="catnav__aux"><li><a href="index.html#service">სერვისები</a></li><li><a class="catnav__sale" href="catalog.html">აქციები</a></li><li><a href="index.html#brands">ბრენდები</a></li><li><a href="about.html"' + (page === 'about' ? ' aria-current="page"' : '') + '>კომპანია</a></li><li><a href="about.html#contact">კონტაქტი</a></li></ul>' +
       '</div></nav>' +
       '<div class="mega" id="mega" data-mega><div class="wrap"><div class="mega__panel">' +

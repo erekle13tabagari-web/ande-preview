@@ -388,7 +388,6 @@
   function renderMega(id) {
     var c = findCat(id) || CATALOG[0];
     $$('.mega__cat', megaCats).forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.cat === c.id)); });
-    $$('.catnav [data-mega-cat]').forEach(function (a) { a.classList.toggle('is-active', a.dataset.megaCat === c.id && mega.classList.contains('is-open')); });
     megaBody.innerHTML = '<div class="mega__head"><h2 class="mega__title">' + c.name + '</h2><a class="link-arrow" href="' + catHref(c) + '">ყველა პროდუქტი' + ico('i-arrow') + '</a></div>' +
       '<div class="mega__grid">' + c.subs.map(function (s) {
         var src = subImg(s);
@@ -397,33 +396,44 @@
       }).join('') + '</div>';
     georgianCaps(megaBody);   // built on hover, after the page-wide caps pass
   }
+  // the category the visitor is in, so the menu opens on it
+  function currentCat() {
+    if (PROTO) return param('cat');
+    var hit = CATALOG.filter(function (c) { return c.url && c.url !== '/' && location.pathname.indexOf(c.url) === 0; })[0];
+    return hit && hit.id;
+  }
+  var megaBtn = $('[data-mega-toggle]');
   function openMega(id, mode) {
     clearTimeout(megaTimer); megaMode = mode;
     mega.classList.add('is-open'); megaScrim.classList.add('is-open');
+    megaBtn.setAttribute('aria-expanded', 'true');
     var sel = $('.mega__cat[aria-selected="true"]', megaCats);
-    renderMega(id || (sel && sel.dataset.cat) || CATALOG[0].id);
+    renderMega(id || (sel && sel.dataset.cat) || currentCat() || CATALOG[0].id);
   }
   function closeMega() {
     clearTimeout(megaTimer); megaMode = null;
     mega.classList.remove('is-open'); megaScrim.classList.remove('is-open');
-    $$('.catnav [data-mega-cat]').forEach(function (a) { a.classList.remove('is-active'); });
+    megaBtn.setAttribute('aria-expanded', 'false');
   }
   megaCats.addEventListener('mouseover', function (e) { var b = e.target.closest('.mega__cat'); if (b && b.getAttribute('aria-selected') !== 'true') renderMega(b.dataset.cat); });
   megaCats.addEventListener('click', function (e) { var b = e.target.closest('.mega__cat'); if (b) renderMega(b.dataset.cat); });
-  $$('.catnav [data-mega-cat]').forEach(function (a) {
-    a.addEventListener('mouseenter', function () {
-      if (matchMedia('(hover: none)').matches) return;
-      clearTimeout(megaTimer);
-      megaTimer = setTimeout(function () { openMega(a.dataset.megaCat, megaMode === 'click' ? 'click' : 'hover'); }, 140);
-    });
+  // "კატალოგი": hover opens it, a click keeps it open (or closes it when it already was)
+  megaBtn.addEventListener('mouseenter', function () {
+    if (matchMedia('(hover: none)').matches || megaMode) return;
+    clearTimeout(megaTimer);
+    megaTimer = setTimeout(function () { openMega(null, 'hover'); }, 140);
   });
-  // template mode: the category row is cached HTML, so the current category is marked here
-  if (!PROTO) $$('.catnav__list a').forEach(function (a) {
-    if (a.pathname !== '/' && location.pathname.indexOf(a.pathname) === 0) a.setAttribute('aria-current', 'page');
+  megaBtn.addEventListener('click', function (e) {
+    if (megaMode === 'click') return closeMega();
+    openMega(null, 'click');
+    if (e.detail === 0) $('.mega__cat[aria-selected="true"]', megaCats).focus();   // opened from the keyboard
   });
   hdr.addEventListener('mouseleave', function () { clearTimeout(megaTimer); if (megaMode === 'hover') megaTimer = setTimeout(closeMega, 220); });
   hdr.addEventListener('mouseenter', function () { if (megaMode === 'hover') clearTimeout(megaTimer); });
-  megaScrim.addEventListener('click', closeMega);
+  // a click anywhere outside the menu closes it: the dimmed page, the sides, the header
+  document.addEventListener('pointerdown', function (e) {
+    if (megaMode && !e.target.closest('.mega__panel,[data-mega-toggle]')) closeMega();
+  });
 
   var drawer = $('[data-drawer]'), burger = $('[data-drawer-open]');
   $('[data-drawer-cats]').innerHTML = CATALOG.map(function (c) {
@@ -664,7 +674,7 @@
     if (modal.classList.contains('is-open')) return closeModal();
     if (chat.classList.contains('is-open')) { openChat(false); chatFab.focus(); return; }
     if (drawer.classList.contains('is-open')) return closeDrawer();
-    if (mega.classList.contains('is-open')) closeMega();
+    if (mega.classList.contains('is-open')) { if (mega.contains(document.activeElement)) megaBtn.focus(); closeMega(); }
     hdr.classList.remove('is-searching'); sugg.hidden = true;
   });
   // other tabs: keep counters in sync
