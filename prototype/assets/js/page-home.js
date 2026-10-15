@@ -46,7 +46,7 @@ ANDE.page(function (A) {
   if (bento) {
     var tiles = A.$$('.tile', bento), slots = tiles.map(function (t, i) { return i; });
     var NEXT = [2, 0, 3, 4, 1];               // from slot 0..4, the slot a tile moves to
-    var FOLD = 250, MOVE = 900, STAY = 5200;  // fold subcategories, travel, stay featured
+    var FOLD = 250, MOVE = 900, STAY = 4000;  // fold subcategories, travel, stay featured
     var wide = matchMedia('(min-width:1025px)');
     var bTimer = null, busy = false, held = false, seen = false;
     var paint = function () { tiles.forEach(function (t, i) { t.dataset.slot = slots[i]; }); };
@@ -82,9 +82,9 @@ ANDE.page(function (A) {
   }
 
   /* ---- popular products (real items from the test shop) ---- */
-  var POPULAR = [2159, 1005, 1792, 2169, 1159, 1762, 2161, 1953];
+  var POPULAR = [2159, 1005, 1792, 2169, 1159, 1762, 1010, 1953];
   var grid = A.$('[data-pgrid]');
-  var picks = POPULAR.map(A.byId).filter(Boolean);
+  var picks = A.collapse(POPULAR.map(A.byId).filter(Boolean));
   function render(f) {
     grid.innerHTML = picks.filter(function (p) { return f === 'all' || p.cat === f; }).map(A.card).join('');
     A.caps(grid);
@@ -103,6 +103,6 @@ ANDE.page(function (A) {
   var recSec = A.$('[data-recent]');
   if (recSec && rec.length >= 2) {
     recSec.hidden = false;
-    A.$('[data-recent-grid]').innerHTML = rec.map(function (id) { return A.card(A.byId(id)); }).join('');
+    A.$('[data-recent-grid]').innerHTML = A.collapse(rec.map(A.byId)).map(A.card).join('');
   }
 });

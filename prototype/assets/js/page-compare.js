@@ -26,6 +26,7 @@ ANDE.page(function (A) {
       ['ბრენდი', function (p) { return A.brandName(p.brand); }],
       ['კოდი', function (p) { return p.art; }],
       ['ფასი', function (p) { return p.price ? A.money(p.price) : 'მოთხოვნით'; }],
+      ['ენერგოეფექტურობის კლასი', function (p) { return p.energy ? [p.energy.c, p.energy.h].filter(Boolean).join(' / ') : ''; }],
       ['ხელმისაწვდომობა', function (p) { return p.stock ? 'მარაგშია' : 'შეკვეთით'; }],
       ['ქვეკატეგორია', function (p) { var s = A.findSub(p.cat, p.sub); return s ? s.name : ''; }],
       ['ტიპი', function (p) { return p.type; }]
@@ -53,7 +54,7 @@ ANDE.page(function (A) {
       '<div class="cmp"><table><thead><tr><th scope="row">პროდუქტი</th>' + set.map(function (p) {
         return '<td><div class="cmp__prod"><button class="cmp__rm" type="button" aria-label="შედარებიდან ამოღება" data-crm="' + p.id + '">' + ico('i-close') + '</button>' +
           '<a href="' + A.url.product(p.id) + '"><img src="' + A.img(p) + '" alt=""></a><a class="cmp__name" href="' + A.url.product(p.id) + '">' + esc(p.name) + '</a>' +
-          (p.price ? '<p class="price">' + A.priceHTML(p.price) + '</p>' : '<p class="price price--ask">ფასი მოთხოვნით</p>') +
+          (p.price ? '<p class="price">' + A.priceHTML(p.price) + '</p>' : '<p class="price price--ask">ფასი მოთხოვნით</p>') + A.energy(p, 'sm') +
           (A.canBuy(p) ? '<button class="cartbtn" type="button" data-add="' + p.id + '">' + ico('i-bag') + '<span>კალათაში</span></button>' : '<button class="cartbtn cartbtn--soft" type="button" data-ask="' + p.id + '">' + ico('i-headset') + '<span>მოთხოვნა</span></button>') +
           '</div></td>';
       }).join('') + '</tr></thead><tbody>' + body + '</tbody></table></div>' +

@@ -76,12 +76,66 @@
   var PRODUCTS = window.ANDE_PRODUCTS || [];
   var BYID = {};
   PRODUCTS.forEach(function (p) { BYID[p.id] = p; });
+
+  /* ---------------- colour variants ----------------
+     One model in several colours is one listing with a colour choice (p.variants, p.color), not a
+     card per colour. The prototype finds them in the names: the colour word, or the colour letter
+     in a Mitsubishi model code (B/S/W/R). In Bitrix they are the product's trade offers (SKU) with
+     a colour property. */
+  var COLORS = [
+    { k: 'white', n: 'თეთრი', w: ['თეთრი', 'WHITE'], c: 'W', sw: '#FFFFFF' },
+    { k: 'silver', n: 'ვერცხლისფერი', w: ['ვერცხლისფერი', 'SILVER'], c: 'S', sw: 'linear-gradient(135deg,#F4F4F6,#A4A6AC)' },
+    { k: 'black', n: 'შავი', w: ['შავი', 'BLACK'], c: 'B', sw: 'linear-gradient(135deg,#4A4A50,#111113)' },
+    { k: 'red', n: 'წითელი', w: ['წითელი', 'RED'], c: 'R', sw: 'linear-gradient(135deg,#C8323A,#6E0F15)' },
+    { k: 'chrome', n: 'ქრომირებული', w: ['ქრომირებული', 'CHROME'], c: '', sw: 'linear-gradient(135deg,#FFFFFF,#9EA3A8 55%,#E6E8EA)' }
+  ];
+  var MCODE = /\b((?:MSZ\/MUZ|MSZ)-(?:EF\d+VE3|EF\d+VGK|LN\d+VG))([BSWR])\b/;
+  function colorOf(name) {
+    var words = name.split(/\s+/), i, j, m;
+    for (i = 0; i < COLORS.length; i++) for (j = 0; j < COLORS[i].w.length; j++) if (words.indexOf(COLORS[i].w[j]) > -1) return { c: COLORS[i], word: COLORS[i].w[j] };
+    if ((m = name.match(MCODE))) for (i = 0; i < COLORS.length; i++) if (COLORS[i].c === m[2]) return { c: COLORS[i], word: null };
+    return null;
+  }
+  if (PROTO) (function () {
+    var groups = {};
+    PRODUCTS.forEach(function (p) {
+      var col = colorOf(p.name); if (!col) return;
+      var n = col.word ? p.name.split(/\s+/).filter(function (w) { return w !== col.word; }).join(' ') : p.name;
+      var key = p.brand + '|' + p.cat + '|' + n.replace(MCODE, '$1*');
+      p.color = col.c;
+      (groups[key] = groups[key] || []).push(p);
+    });
+    Object.keys(groups).forEach(function (key) {
+      var g = groups[key], ks = g.map(function (p) { return p.color.k; });
+      // one colour is not a choice, and two of the same colour are not variants of each other
+      if (g.length < 2 || ks.some(function (k, i) { return ks.indexOf(k) !== i; })) { g.forEach(function (p) { delete p.color; }); return; }
+      g.sort(function (a, b) { return COLORS.indexOf(a.color) - COLORS.indexOf(b.color); });
+      g.forEach(function (p) { p.variants = g; });
+    });
+  })();
+  // a list with every model once: the first colour met stands for its model
+  function collapse(list) {
+    var seen = [];
+    return list.filter(function (p) {
+      if (!p || !p.variants) return !!p;
+      if (seen.indexOf(p.variants) > -1) return false;
+      seen.push(p.variants); return true;
+    });
+  }
+  function swatchesHTML(p, cls) {
+    if (!p.variants) return '';
+    return '<span class="' + cls + '" role="group" aria-label="ფერი">' + p.variants.map(function (v) {
+      return '<button class="swatch" type="button" style="--sw:' + v.color.sw + '" data-variant="' + v.id + '" aria-pressed="' + (v === p) + '" aria-label="' + v.color.n + '" title="' + v.color.n + '"></button>';
+    }).join('') + '</span>';
+  }
+
   // subcategories without a picture of their own borrow their first product's photo
   if (PROTO) CATALOG.forEach(function (c) {
     c.count = 0;
     c.subs.forEach(function (s) {
       var list = PRODUCTS.filter(function (p) { return p.cat === c.id && p.sub === s.id; });
-      s.count = list.length; c.count += list.length;
+      var models = collapse(list).length;
+      s.count = models; c.count += models;
       if (!s.img) { var withImg = list.filter(function (p) { return p.imgs.length && p.imgs[0].indexOf('cat:') !== 0; })[0]; if (withImg) s.prodImg = withImg.imgs[0]; }
     });
   });
@@ -101,6 +155,34 @@
     });
     return s.slice(0, n || 4);
   }
+  /* energy class next to every price (EU-style arrow; clicking it shows the label) and the
+     product's documents. p.energy = {c: cooling class, h: heating class, label: image}, p.docs =
+     [{t: title, f: file}]; bare file names live in assets/energy/, Bitrix passes full URLs. */
+  var ECLS = ['A+++', 'A++', 'A+', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  function fileHref(f) { return /[\/:]/.test(f) ? f : 'assets/energy/' + f; }
+  function energyHTML(p, size) {
+    var e = p && p.energy;
+    if (!e || !(e.c || e.h)) return '';
+    var still = size === 'xs', both = !!(e.c && e.h);
+    function arrow(cls, kind) {
+      if (!cls) return '';
+      var base = cls.replace(/\+/g, ''), plus = cls.length - base.length, i = ECLS.indexOf(cls);
+      var txt = (both && !still ? ico(kind === 'c' ? 'i-snow' : 'i-flame') : '') + '<span>' + base + (plus ? '<sup>' + new Array(plus + 1).join('+') + '</sup>' : '') + '</span>';
+      var label = 'ენერგოეფექტურობის კლასი ' + cls + (both ? (kind === 'c' ? ' (SEER)' : ' (SCOP)') : '');
+      return still
+        ? '<span class="eclass eclass--' + i + '" title="' + label + '">' + txt + '</span>'
+        : '<button class="eclass eclass--' + i + '" type="button" data-elabel="' + p.id + '" aria-label="' + label + ', ეტიკეტის ნახვა">' + txt + '</button>';
+    }
+    return '<span class="energy' + (size ? ' energy--' + size : '') + '">' + arrow(e.c, 'c') + arrow(e.h, 'h') + '</span>';
+  }
+  function docsHTML(p) {
+    if (!p.docs || !p.docs.length) return '';
+    return '<ul class="docs">' + p.docs.map(function (d) {
+      return '<li><a class="doc" href="' + esc(fileHref(d.f)) + '" target="_blank" rel="noopener" download>' + ico('i-download') +
+        '<span>' + esc(d.t) + '<small>PDF</small></span></a></li>';
+    }).join('') + '</ul>';
+  }
+
   var url = {
     catalog: function (cat, sub, extra) { var q = []; if (cat) q.push('cat=' + cat); if (sub) q.push('sub=' + sub); if (extra) q.push(extra); return 'catalog.html' + (q.length ? '?' + q.join('&') : ''); },
     product: function (id) { return 'product.html?id=' + id; }
@@ -125,10 +207,11 @@
         '<button class="tool" type="button" data-compare="' + p.id + '" aria-pressed="' + compare.has(p.id) + '" aria-label="შედარებაში">' + ico('i-bars') + '</button>' +
       '</div>' +
       '<div class="pcard__body">' +
-        '<p class="pcard__brand">' + esc(brandName(p.brand) || ' ') + '</p>' +
+        '<p class="pcard__brand"><span>' + esc(brandName(p.brand) || ' ') + '</span>' + swatchesHTML(p, 'pcard__colors') + '</p>' +
         '<h3 class="pcard__title"><a href="' + url.product(p.id) + '">' + esc(p.name) + '</a></h3>' +
         (specs.length ? '<dl class="pcard__specs">' + specs.map(function (s) { return '<div><dt>' + esc(s[0]) + '</dt><dd>' + esc(s[1]) + '</dd></div>'; }).join('') + '</dl>' : '') +
-        '<p class="pcard__meta"><span class="stock ' + (p.stock ? 'stock--in">მარაგშია' : 'stock--out">შეკვეთით') + '</span>' + (p.art ? '<span>კოდი ' + esc(p.art) + '</span>' : '') + '</p>' +
+        // energy class sits right above the price; on those cards it takes the code's place, so cards stay aligned
+        '<p class="pcard__meta"><span class="stock ' + (p.stock ? 'stock--in">მარაგშია' : 'stock--out">შეკვეთით') + '</span>' + (p.energy ? energyHTML(p, 'sm') : p.art ? '<span>კოდი ' + esc(p.art) + '</span>' : '') + '</p>' +
         '<div class="pcard__foot">' + foot + '</div>' +
       '</div></article>';
   }
@@ -392,7 +475,7 @@
       '<div class="mega__grid">' + c.subs.map(function (s) {
         var src = subImg(s);
         return '<a class="sub" href="' + catHref(c, s) + '"><span class="sub__img">' + (src ? '<img src="' + src + '" alt="" loading="lazy">' : ico(s.icon || 'i-box')) + '</span>' +
-          '<span class="sub__name">' + s.name + (s.count != null ? '<small>' + s.count + ' პროდუქტი</small>' : '') + '</span></a>';
+          '<span class="sub__name"><span class="sub__label">' + s.name + '</span>' + (s.count != null ? '<small>' + s.count + ' პროდუქტი</small>' : '') + '</span></a>';
       }).join('') + '</div>';
     georgianCaps(megaBody);   // built on hover, after the page-wide caps pass
   }
@@ -491,7 +574,7 @@
     var q = qIn.value.trim();
     if (q.length < 2) { sugg.hidden = true; qIn.setAttribute('aria-expanded', 'false'); return; }
     if (!PROTO) return fetchSuggest(q);
-    var res = search(q), cats = [];
+    var res = collapse(search(q)), cats = [];
     CATALOG.forEach(function (c) { c.subs.forEach(function (s) { if (norm(s.name + ' ' + c.name).indexOf(norm(q)) > -1) cats.push([c, s]); }); });
     var html = '';
     if (cats.length) html += '<p class="suggest__label">კატეგორიები</p>' + cats.slice(0, 3).map(function (x) {
@@ -499,7 +582,7 @@
     }).join('');
     if (res.length) html += '<p class="suggest__label">პროდუქცია</p>' + res.slice(0, 6).map(function (p) {
       return '<a class="suggest__item" role="option" href="' + url.product(p.id) + '"><img src="' + img(p) + '" alt=""><span class="suggest__name">' + mark(p.name, q) +
-        '<small>' + esc(brandName(p.brand)) + (p.art ? ' · ' + esc(p.art) : '') + '</small></span><span class="suggest__price">' + (p.price ? money(p.price) : '') + '</span></a>';
+        '<small>' + esc(brandName(p.brand)) + (p.art ? ' · ' + esc(p.art) : '') + '</small></span><span class="suggest__price">' + energyHTML(p, 'xs') + (p.price ? money(p.price) : '') + '</span></a>';
     }).join('') + '<a class="suggest__all" href="catalog.html?q=' + encodeURIComponent(q) + '">ყველა შედეგი (' + res.length + ')</a>';
     if (!html) html = '<p class="suggest__empty">ვერაფერი მოიძებნა: „' + esc(q) + '“</p>';
     showSuggest(html);
@@ -531,21 +614,137 @@
   onScroll();
   totop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' }); });
 
+  /* ---------------- partner brands ----------------
+     Logos: brand/partners/<id>.svg (light mode) and <id>-dark.svg (dark mode), cut from the
+     partner logo sheet by tools/brand/split-logos.pl. The page gives the folder in
+     data-brands. Website only where the brand's official site is confirmed; the others
+     show without a link until Ande sends the address. */
+  var BRANDS = [
+    ['mitsubishi-electric', 'Mitsubishi Electric', 'https://www.mitsubishielectric.com'],
+    ['samsung', 'Samsung', 'https://www.samsung.com'],
+    ['riello', 'Riello', 'https://www.riello.com'],
+    ['beretta', 'Beretta', 'https://www.berettaclima.it'],
+    ['vortice', 'Vortice', 'https://www.vortice.com'],
+    ['warmhaus', 'Warmhaus', 'https://www.warmhaus.com'],
+    ['tiemme', 'Tiemme', 'https://www.tiemme.com'],
+    ['sira', 'Sira Industrie', 'https://www.siragroup.it'],
+    ['soprema', 'Soprema', 'https://www.soprema.com'],
+    ['izocam', 'İzocam', 'https://www.izocam.com.tr'],
+    ['emtas', 'Emtaş', ''],
+    ['sakra', 'Sakra', ''],
+    ['untes', 'Üntes', ''],
+    ['rovall', 'Rovall', ''],
+    ['fir', 'FIR', ''],
+    ['maco', 'Maco Radiator', ''],
+    ['omega', 'Omega', ''],
+    ['hitte', 'Hitte', ''],
+    ['facot', 'Facot Chemicals', ''],
+    ['sk-technik', 'S+K Technik', ''],
+    ['teknix', 'Teknix Engineering', ''],
+    ['piazza', 'Piazza', ''],
+    ['hoffman-plus', 'Hoffman Plus', '']
+  ];
+  $$('[data-brands]').forEach(function (box) {
+    var base = box.getAttribute('data-brands');
+    var cells = BRANDS.map(function (b) {
+      var logos = '<img class="brand__l" src="' + base + b[0] + '.svg" alt="' + esc(b[1]) + '" loading="lazy">' +
+                  '<img class="brand__d" src="' + base + b[0] + '-dark.svg" alt="' + esc(b[1]) + '" loading="lazy">';
+      return b[2] ? '<a class="brand" href="' + b[2] + '" target="_blank" rel="noopener" title="' + esc(b[1]) + ' · ოფიციალური საიტი">' + logos + '</a>'
+                  : '<span class="brand" title="' + esc(b[1]) + '">' + logos + '</span>';
+    });
+    // blank cells up to a multiple of 24, so the grid ends in a full row at 8, 6, 4 and 3 columns
+    while (cells.length % 24) cells.push('<span class="brand brand--blank" aria-hidden="true"></span>');
+    box.innerHTML = cells.join('');
+  });
+
   /* ---------------- floating: support chat (scripted assistant) ---------------- */
   var chat = $('[data-chat]'), chatLog = $('[data-chat-log]'), chatFab = $('.chatfab'), bubble = $('[data-chat-bubble]'), chatStarted = false;
   var STORES = 'ჩვენი მაღაზიები თბილისში:\n• წერეთლის გამზირი 116\n• რ. აგლაძის ქუჩა 7ა\n• კოსმონავტების ქუჩა 21\nვმუშაობთ ყოველდღე 10:00–18:00.';
   var INTENTS = [
+    // first, so "სად არის ჩემი შეკვეთა" is not read as a delivery question
+    { k: ['სტატუს', 'ჩემი შეკვეთ', 'შეკვეთა სად', 'სად არის ჩემი', 'order'], act: 'orders' },
     { k: ['გამარჯ', 'სალამ', 'hello', 'hi', 'hey'], a: 'გამარჯობა! რით შემიძლია დაგეხმაროთ? შემიძლია მოგიძებნოთ პროდუქტი ან გიპასუხოთ მიწოდების, გადახდის და გარანტიის შესახებ.' },
     { k: ['მიწოდ', 'მიტან', 'ტრანსპორტ', 'გატან', 'delivery', 'მოტან'], a: 'შეკვეთის გაფორმების შემდეგ, მომდევნო სამუშაო დღეს დაგიკავშირდებათ ჩვენი წარმომადგენელი და შეგითანხმებთ მიწოდების დეტალებს. პროდუქციის გატანა ასევე შეგიძლიათ ჩვენი მაღაზიებიდან.' },
-    { k: ['განვადებ', 'სესხ', 'ნაწილ-ნაწილ'], a: 'განვადების პირობებზე დაგიკავშირდებათ ჩვენი კონსულტანტი. დაგვიტოვეთ ნომერი ან დაგვირეკეთ 0322 152 152.', cb: true },
+    { k: ['განვადებ', 'სესხ', 'ნაწილ ნაწილ'], a: 'განვადების პირობებზე დაგიკავშირდებათ ჩვენი კონსულტანტი. დაგვიტოვეთ ნომერი ან დაგვირეკეთ 0322 152 152.', cb: true },
     { k: ['გადახდ', 'ბარათ', 'ნაღდ', 'გადარიცხ', 'pay', 'card', 'გადავიხად'], a: 'გადახდა შესაძლებელია საბანკო გადარიცხვით ან ნაღდი ანგარიშსწორებით. დეტალებს შეკვეთის დადასტურებისას შეგითანხმებთ.' },
     { k: ['გარანტ', 'warranty', 'სერვის'], a: 'ვთავაზობთ საგარანტიო და საგარანტიო ვადის შემდგომ მომსახურებას. გარანტიის ვადა პროდუქტზეა დამოკიდებული და მითითებულია მის მახასიათებლებში.' },
     { k: ['მონტაჟ', 'დამონტაჟ', 'ინსტალ', 'პროექტ', 'install', 'დაყენ'], a: 'ვთავაზობთ კონსულტაციას, პროექტირებას და მონტაჟს, როგორც ინდივიდუალურ, ისე კორპორატიულ მომხმარებლებს. დაგვიტოვეთ ნომერი და ინჟინერი დაგიკავშირდებათ.', cb: true },
     { k: ['მაღაზ', 'მისამართ', 'სად ხართ', 'ფილიალ', 'address', 'სამუშაო საათ', 'როდის მუშაობ'], a: STORES },
-    { k: ['ოპერატორ', 'ადამიან', 'კონსულტ', 'დარეკ', 'ნომერ', 'operator'], a: 'სიამოვნებით დაგაკავშირებთ კონსულტანტთან. დაგვირეკეთ 0322 152 152 ან დაგვიტოვეთ ნომერი და გადმოგირეკავთ.', cb: true },
+    { k: ['ოპერატორ', 'ადამიან', 'კონსულტ', 'დარეკ', 'operator'], act: 'live' },
     { k: ['მადლობ', 'thanks', 'thank'], a: 'არაფრის! თუ კიდევ რამე დაგჭირდებათ, აქ ვარ.' }
   ];
-  var QUICK = ['მიწოდება', 'გადახდა', 'გარანტია', 'მონტაჟი', 'მაღაზიები', 'ოპერატორი'];
+  var QUICK = ['მიწოდება', 'გადახდა', 'გარანტია', 'მონტაჟი', 'მაღაზიები', 'შეკვეთის სტატუსი', 'ოპერატორი'];
+
+  /* The chat's server side. Template: local/ajax/ande-chat.php (window.ANDE_CHAT) searches the
+     catalog, creates CRM leads and reads the customer's orders. Prototype: the same answers are
+     made up in the browser, so every flow can be clicked through. */
+  var CHATCFG = window.ANDE_CHAT || null, chatToken = null, lastTopic = '';
+  function chatApi(action, data) {
+    if (!CHATCFG) return demoApi(action, data || {});
+    var send = function () {
+      var body = new FormData();
+      body.append('action', action); body.append('sessid', chatToken || '');
+      Object.keys(data || {}).forEach(function (k) { body.append(k, data[k]); });
+      return fetch(CHATCFG.url, { method: 'POST', body: body, credentials: 'same-origin' }).then(function (r) { return r.json(); });
+    };
+    if (chatToken || action === 'init') return send();
+    return chatApi('init').then(function (r) { chatToken = r.sessid; CHATCFG.auth = r.auth; CHATCFG.login = r.login; return send(); });
+  }
+  function demoApi(action, d) {
+    var r = { ok: true };
+    if (action === 'search') {
+      r.items = collapse(search(d.q)).slice(0, 4).map(function (p) { return { id: p.id, name: p.name, url: url.product(p.id), img: img(p), price: p.price ? money(p.price) : null, stock: !!p.stock, energy: p.energy }; });
+      r.all = 'catalog.html?q=' + encodeURIComponent(d.q);
+    } else if (action === 'lead') r.id = 1000 + Math.floor(Math.random() * 9000);
+    else if (action === 'orders') r.auth = false;
+    return new Promise(function (res) { setTimeout(function () { res(r); }, 300); });
+  }
+  // typing dots while the server answers; render(result) returns { text, html, cb, quick }
+  function botAsk(promise, render) {
+    var t = addMsg('<i></i><i></i><i></i>', 'bot msg--typing', true), t0 = Date.now();
+    promise.then(function (r) { if (!r || !r.ok) throw r; return render(r); })
+      .catch(function (r) {
+        return { text: r && r.error === 'limit' ? 'ძალიან ბევრი მოთხოვნა მოკლე დროში. ცოტა ხანში სცადეთ ან დაგვირეკეთ 0322 152 152.'
+                                               : 'კავშირი ვერ დამყარდა. სცადეთ თავიდან ან დაგვირეკეთ 0322 152 152.' };
+      })
+      .then(function (o) {
+        setTimeout(function () {
+          t.remove(); addMsg(o.text, 'bot', o.html);
+          if (o.cb) addCallback(); if (o.quick) addQuick(o.quick);
+        }, Math.max(0, 500 - (Date.now() - t0)));
+      });
+  }
+  function prodList(items, all) {
+    return '<span class="chatprods">' + items.map(function (p) {
+      return '<a class="chatprod" href="' + esc(p.url) + '">' + (p.img ? '<img src="' + esc(p.img) + '" alt="" loading="lazy">' : '<span class="chatprod__img">' + ico('i-box') + '</span>') +
+        '<span class="chatprod__txt"><b>' + esc(p.name) + '</b><small>' + energyHTML(p, 'xs') + (p.price ? esc(p.price) : 'ფასი მოთხოვნით') +
+        ' · <i class="' + (p.stock ? 'is-in' : 'is-out') + '">' + (p.stock ? 'მარაგშია' : 'შეკვეთით') + '</i></small></span></a>';
+    }).join('') + '</span>' + (all ? '<a class="textlink" href="' + esc(all) + '">ყველა შედეგი</a>' : '');
+  }
+  function orderStatus() {
+    botAsk(chatApi('orders'), function (r) {
+      if (!r.auth) {
+        var login = CHATCFG ? '<a class="btn btn--soft btn--sm chat__btn" href="' + esc(r.login || CHATCFG.login || '/auth/') + '?backurl=' + encodeURIComponent(location.pathname) + '">შესვლა</a>'
+                            : '<button class="btn btn--soft btn--sm chat__btn" type="button" data-login>შესვლა</button>';
+        return { html: true, text: 'შეკვეთის სტატუსის სანახავად შედით თქვენს კაბინეტში. შესვლის შემდეგ აქვე გაჩვენებთ ბოლო შეკვეთებს.' + login };
+      }
+      if (!r.items.length) return { text: 'თქვენს ანგარიშზე შეკვეთები ჯერ არ არის. თუ შეკვეთა ტელეფონით გააფორმეთ, დაგვირეკეთ 0322 152 152.' };
+      return { html: true, text: 'თქვენი ბოლო შეკვეთები:<span class="chatorders">' + r.items.map(function (o) {
+        return '<a class="chatorder" href="' + esc(o.url) + '"><b>№ ' + esc(o.number) + '</b><span>' + esc(o.date) + ' · ' + esc(o.total) + (o.paid ? ' · გადახდილია' : '') + '</span><em>' + esc(o.status) + '</em></a>';
+      }).join('') + '</span><a class="textlink" href="' + esc(r.all) + '">ყველა შეკვეთა</a>' };
+    });
+  }
+  // hand the conversation to a person: Bitrix24 Open Lines when it is set up, a callback otherwise
+  function handoff() {
+    var live = CHATCFG && CHATCFG.live && window.ANDE_LIVECHAT;
+    if (live) {
+      botSay('გადაგიყვანთ ოპერატორთან. ჩატი ახლავე გაიხსნება.');
+      setTimeout(function () { openChat(false); try { live.open(); } catch (e) {} }, 1200);
+      return;
+    }
+    botSay(CHATCFG ? 'ოპერატორთან ჩატი ახლა მიუწვდომელია. დაგვირეკეთ 0322 152 152 ან დაგვიტოვეთ ნომერი და გადმოგირეკავთ.'
+                   : 'ოპერატორთან ცოცხალი ჩატი Bitrix-თან დაკავშირების შემდეგ იმუშავებს. მანამდე დაგვირეკეთ 0322 152 152 ან დაგვიტოვეთ ნომერი და გადმოგირეკავთ.', { cb: true });
+  }
   function addMsg(text, who, html) {
     var m = document.createElement('div');
     m.className = 'msg msg--' + who;
@@ -572,31 +771,42 @@
     var f = document.createElement('form'); f.className = 'chat__cb'; f.noValidate = true;
     f.innerHTML = '<div class="field"><label class="sr-only" for="cb-n">სახელი</label><input class="input" id="cb-n" placeholder="სახელი"></div>' +
       '<div class="field"><label class="sr-only" for="cb-p">ტელეფონი</label><div class="phonefield"><span>+995</span><input class="input" id="cb-p" type="tel" inputmode="numeric" placeholder="5XX XX XX XX" data-phone></div></div>' +
+      // hidden from people; bots fill every field, and the server drops requests that have it
+      '<input class="chat__hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">' +
       '<button class="btn btn--primary btn--sm" type="submit">გადმორეკვის მოთხოვნა</button>';
     chatLog.appendChild(f); chatLog.scrollTop = chatLog.scrollHeight;
     georgianCaps(f);
     f.addEventListener('submit', function (e) {
       e.preventDefault();
-      var n = $('#cb-n', f), p = $('#cb-p', f);
-      if (!n.value.trim()) { n.focus(); return; }
+      var n = $('#cb-n', f), p = $('#cb-p', f), name = n.value.trim();
+      if (!name) { n.focus(); return; }
       if (!phoneOk(p.value)) { fieldErr(p, 'შეიყვანეთ 9-ნიშნა ნომერი'); p.focus(); return; }
+      var data = { name: name, phone: p.value.replace(/\D/g, ''), topic: lastTopic, page: location.href, website: f.elements.website.value };
       f.remove();
-      addMsg(n.value.trim() + ', +995 ' + p.value, 'me');
-      botSay('მადლობა, ' + n.value.trim() + '! კონსულტანტი გადმოგირეკავთ სამუშაო საათებში (ყოველდღე 10:00–18:00).');
+      addMsg(name + ', +995 ' + p.value, 'me');
+      botAsk(chatApi('lead', data), function (r) {
+        return { text: 'მადლობა, ' + name + '! მოთხოვნა მიღებულია' + (r.id ? ' (№ ' + r.id + ')' : '') + '. კონსულტანტი გადმოგირეკავთ სამუშაო საათებში (ყოველდღე 10:00–18:00).' };
+      });
     });
   }
   function reply(text) {
-    var t = text.toLowerCase();
+    // keywords match at the start of a word ("მიწოდ" finds "მიწოდება"); short ones only as whole
+    // words, so "hi" does not fire inside "mitsubishi"
+    var t = ' ' + text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ') + ' ';
+    var has = function (k) { return t.indexOf(' ' + k + (k.length <= 3 ? ' ' : '')) > -1; };
+    lastTopic = text;
     for (var i = 0; i < INTENTS.length; i++) {
-      if (INTENTS[i].k.some(function (k) { return t.indexOf(k) > -1; })) { botSay(INTENTS[i].a, { cb: INTENTS[i].cb }); return; }
-    }
-    var res = search(text).slice(0, 3);
-    if (res.length) {
-      botSay('აი, რა ვიპოვე:<br>' + res.map(function (p) { return '• <a href="' + url.product(p.id) + '">' + esc(p.name) + '</a>' + (p.price ? ' · ' + money(p.price) : ''); }).join('<br>') +
-        '<br><a href="catalog.html?q=' + encodeURIComponent(text) + '">ყველა შედეგი</a>', { html: true });
+      var it = INTENTS[i];
+      if (!it.k.some(has)) continue;
+      if (it.act === 'orders') orderStatus();
+      else if (it.act === 'live') handoff();
+      else botSay(it.a, { cb: it.cb });
       return;
     }
-    botSay('ამ კითხვაზე უკეთ ჩვენი კონსულტანტი გიპასუხებთ. დაგვირეკეთ 0322 152 152 ან დაგვიტოვეთ ნომერი და გადმოგირეკავთ.', { cb: true });
+    botAsk(chatApi('search', { q: text }), function (r) {
+      if (r.items.length) return { html: true, text: 'აი, რა ვიპოვე:' + prodList(r.items, r.all) };
+      return { text: 'ამ კითხვაზე უკეთ ჩვენი კონსულტანტი გიპასუხებთ. დაგვირეკეთ 0322 152 152 ან დაგვიტოვეთ ნომერი და გადმოგირეკავთ.', cb: true };
+    });
   }
   function openChat(open) {
     var on = open == null ? !chat.classList.contains('is-open') : open;
@@ -618,7 +828,7 @@
     e.preventDefault(); var i = $('#chat-in'), v = i.value.trim(); if (!v) return;
     i.value = ''; addMsg(v, 'me'); reply(v);
   });
-  $('[data-chat-callback]').addEventListener('click', function () { if (!chatStarted) openChat(true); addMsg('გადმორეკვა მინდა', 'me'); botSay('რა თქმა უნდა. დაგვიტოვეთ სახელი და ნომერი:', { cb: true }); });
+  $('[data-chat-callback]').addEventListener('click', function () { if (!chatStarted) openChat(true); addMsg('გადმორეკვა მინდა', 'me'); lastTopic = lastTopic || 'გადმორეკვა'; botSay('რა თქმა უნდა. დაგვიტოვეთ სახელი და ნომერი:', { cb: true }); });
   $('[data-bubble-close]').addEventListener('click', function () { bubble.classList.remove('is-on'); try { sessionStorage.setItem('ande-bubble', '1'); } catch (e) {} });
   try {
     if (!sessionStorage.getItem('ande-bubble')) setTimeout(function () {
@@ -680,11 +890,35 @@
   // other tabs: keep counters in sync
   window.addEventListener('storage', function (e) { if (e.key && e.key.indexOf('ande-') === 0) { badges(); document.dispatchEvent(new CustomEvent('ande:change', { detail: { type: 'sync' } })); } });
 
+  // colour swatch on a card: the card turns into that colour (photo, name, price, stock, energy)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.pcard [data-variant]');
+    if (!b) return;
+    var v = BYID[b.getAttribute('data-variant')], el = b.closest('.pcard');
+    if (!v || +el.getAttribute('data-id') === v.id) return;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = card(v);
+    var next = tmp.firstChild;
+    el.parentNode.replaceChild(next, el);
+    georgianCaps(next);
+    var f = $('[data-variant="' + v.id + '"]', next); if (f) f.focus();
+  });
+
+  // energy class arrow: show the product's energy label
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-elabel]');
+    if (!b) return;
+    var p = BYID[b.getAttribute('data-elabel')];
+    if (!p || !p.energy || !p.energy.label) return;
+    e.preventDefault(); e.stopPropagation();
+    openLightbox([fileHref(p.energy.label)], 0);
+  });
+
   /* ---------------- page registry ---------------- */
   var pages = [];
   window.ANDE = {
     products: PRODUCTS, byId: function (id) { return BYID[id]; }, CATALOG: CATALOG, findCat: findCat, findSub: findSub, subImg: subImg,
-    img: img, money: money, priceHTML: priceHTML, esc: esc, ico: ico, param: param, url: url, brandName: brandName, keySpecs: keySpecs, canBuy: canBuy,
+    img: img, money: money, priceHTML: priceHTML, collapse: collapse, swatches: swatchesHTML, energy: energyHTML, docs: docsHTML, fileHref: fileHref, esc: esc, ico: ico, param: param, url: url, brandName: brandName, keySpecs: keySpecs, canBuy: canBuy,
     card: card, cart: cart, wish: wish, compare: compare, recent: recent, search: search, store: store,
     toast: toast, openModal: openModal, closeModal: closeModal, contactForm: contactForm, openLightbox: openLightbox, openChat: openChat,
     fieldErr: fieldErr, phoneOk: phoneOk, caps: georgianCaps, reduceMotion: reduceMotion, $: $, $$: $$,

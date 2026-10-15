@@ -56,7 +56,7 @@ ANDE.page(function (A) {
       '<aside class="summary" aria-label="შეკვეთა"><h2>თქვენი შეკვეთა</h2>' +
         '<div class="minilines">' + items.map(function (l) {
           var p = A.byId(l.id);
-          return '<div class="miniline"><img src="' + A.img(p) + '" alt=""><span>' + esc(p.name) + '<br><small>' + l.qty + ' × ' + A.money(p.price) + '</small></span><b>' + A.money(p.price * l.qty) + '</b></div>';
+          return '<div class="miniline"><img src="' + A.img(p) + '" alt=""><span>' + esc(p.name) + '<br><small>' + l.qty + ' × ' + A.money(p.price) + '</small>' + A.energy(p, 'xs') + '</span><b>' + A.money(p.price * l.qty) + '</b></div>';
         }).join('') + '</div>' +
         '<dl><div><dt>პროდუქცია (' + A.cart.count() + ' ც.)</dt><dd>' + A.money(total) + '</dd></div><div><dt>მიღება</dt><dd data-sum-ship>გატანა მაღაზიიდან</dd></div><div><dt>გადახდა</dt><dd data-sum-pay>საბანკო გადარიცხვა</dd></div></dl>' +
         '<div class="summary__total"><span>სულ</span><p class="price">' + A.priceHTML(total) + '</p></div>' +

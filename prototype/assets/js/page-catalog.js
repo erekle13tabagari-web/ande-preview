@@ -77,9 +77,10 @@ ANDE.page(function (A) {
       'price-desc': function (a, b) { return (b.price || -1) - (a.price || -1); },
       name: function (a, b) { return a.name.localeCompare(b.name, 'ka'); }
     }[S.sort] || function () { return 0; };
-    return r.sort(cmp);
+    // one card per model: its colours are swatches on the card
+    return A.collapse(r.sort(cmp));
   }
-  function count(skip, test) { return base.filter(function (p) { return match(p, skip) && test(p); }).length; }
+  function count(skip, test) { return A.collapse(base.filter(function (p) { return match(p, skip) && test(p); })).length; }
 
   /* ---------- page head ---------- */
   var title = S.q ? 'ძიება: „' + S.q + '“' : sub ? sub.name : cat ? cat.name : 'კატალოგი';
@@ -100,7 +101,7 @@ ANDE.page(function (A) {
       }).join('');
   } else {
     chips = A.CATALOG.map(function (c) {
-      var n = S.q ? base.filter(function (p) { return p.cat === c.id; }).length : c.count;
+      var n = S.q ? A.collapse(base.filter(function (p) { return p.cat === c.id; })).length : c.count;
       return '<a class="subchip" href="' + A.url.catalog(c.id, '', S.q ? 'q=' + encodeURIComponent(S.q) : '') + '">' + ico(c.icon) + c.name + ' <small>' + n + '</small></a>';
     }).join('');
   }

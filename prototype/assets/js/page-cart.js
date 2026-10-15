@@ -27,7 +27,7 @@ ANDE.page(function (A) {
         return '<div class="line" data-line="' + p.id + '">' +
           '<a class="line__img" href="' + A.url.product(p.id) + '"><img src="' + A.img(p) + '" alt=""></a>' +
           '<div><p class="line__brand">' + esc(A.brandName(p.brand)) + '</p><a class="line__name" href="' + A.url.product(p.id) + '">' + esc(p.name) + '</a>' +
-            '<p class="line__meta">' + (p.art ? '<span>კოდი ' + esc(p.art) + '</span>' : '') + '<span class="stock stock--in">მარაგშია</span><span>' + A.money(p.price) + ' / ცალი</span></p>' +
+            '<p class="line__meta">' + (p.art ? '<span>კოდი ' + esc(p.art) + '</span>' : '') + '<span class="stock stock--in">მარაგშია</span><span>' + A.money(p.price) + ' / ცალი</span>' + A.energy(p, 'sm') + '</p>' +
             '<div class="line__acts"><button type="button" data-towish="' + p.id + '">' + ico('i-heart') + 'რჩეულებში</button><button class="rm" type="button" data-rmline="' + p.id + '">' + ico('i-trash') + 'წაშლა</button></div></div>' +
           '<div class="qty qty--sm" role="group" aria-label="რაოდენობა"><button type="button" aria-label="შემცირება" data-lq="-1" data-id="' + p.id + '">' + ico('i-minus') + '</button>' +
             '<input type="number" min="1" max="99" value="' + l.qty + '" inputmode="numeric" aria-label="რაოდენობა" data-lqin="' + p.id + '"><button type="button" aria-label="გაზრდა" data-lq="1" data-id="' + p.id + '">' + ico('i-plus') + '</button></div>' +
@@ -55,7 +55,7 @@ ANDE.page(function (A) {
     var picks = pool.filter(function (p) { return cats.some(function (c) { return p.cat === c && p.sub === accSubs[c]; }); });
     if (picks.length < 4) picks = picks.concat(pool.filter(function (p) { return picks.indexOf(p) < 0 && (!cats.length || cats.indexOf(p.cat) > -1); }));
     var sec = A.$('[data-upsell]');
-    A.$('.pgrid', sec).innerHTML = picks.slice(0, 4).map(A.card).join('');
+    A.$('.pgrid', sec).innerHTML = A.collapse(picks).slice(0, 4).map(A.card).join('');
     A.$('[data-upsell-title]').textContent = items.length ? 'შეიძლება დაგჭირდეთ' : 'პოპულარული პროდუქცია';
     A.caps(sec);
   }

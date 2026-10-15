@@ -28,6 +28,7 @@
         <button class="pnav__tab" type="button" role="tab" id="tab-about" aria-controls="about" aria-selected="true">აღწერა</button>
         <button class="pnav__tab" type="button" role="tab" id="tab-specs" aria-controls="specs" aria-selected="false" tabindex="-1">მახასიათებლები</button>
         <button class="pnav__tab" type="button" role="tab" id="tab-delivery" aria-controls="delivery" aria-selected="false" tabindex="-1">მიწოდება და გადახდა</button>
+        <button class="pnav__tab" type="button" role="tab" id="tab-downloads" aria-controls="downloads" aria-selected="false" tabindex="-1" hidden>ჩამოტვირთვები</button>
       </div>
     </div>
 
@@ -58,6 +59,11 @@
           <div class="infocard"><svg class="ico"><use href="#i-truck"/></svg><h3>მიწოდება ან გატანა</h3><p>მიწოდების დეტალებს შეგითანხმებთ. პროდუქციის გატანა ასევე შეგიძლიათ ჩვენი სამი მაღაზიიდან თბილისში.</p></div>
           <div class="infocard"><svg class="ico"><use href="#i-card"/></svg><h3>გადახდა</h3><p>გადახდა შესაძლებელია საბანკო გადარიცხვით ან ნაღდი ანგარიშსწორებით.</p></div>
         </div>
+      </section>
+
+      <section class="ppanel" id="downloads" role="tabpanel" aria-labelledby="tab-downloads" hidden>
+        <h2 class="sr-only">ჩამოტვირთვები</h2>
+        <div data-downloads></div>
       </section>
     </div>
   </div>
